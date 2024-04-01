@@ -39,25 +39,35 @@ class MOSSetting:
 class MOSResult:
     filename: List = field(default_factory=list)
     expname: List = field(default_factory=list)
-    score: List = field(default_factory=list)
+    timbre_score: List = field(default_factory=list)
+    clarity_score: List = field(default_factory=list)
     username: List = field(default_factory=list)
 
-    def add_item(self, filename, expname, score, username):
+    def add_item(self, filename, expname, timbre_score, clarity_score, username):
         self.filename.append(filename)
         self.expname.append(expname)
-        self.score.append(score)
+        self.timbre_score.append(timbre_score)
+        self.clarity_score.append(clarity_score)
         self.username.append(username)
 
     def check_valid(self):
-        if None in self.score or "" in self.username:
+        if (None in self.timbre_score or 
+            "" in self.username or 
+            None in self.clarity_score):
             return False
         else:
             return True
 
+def write_readme():
+    st.write("请先听左边的音频，然后评价右边每一个生成音频在音色上与左边的提示音频的相似度，\
+        以及评价生成音频的发音清晰度。分数由1分到5分表示生成音频越来越好，例如5分的音色相似性，\
+        表示非常像原始音频的说话人，同时1分表示非常不像；在清晰度维度，5分表示发音非常清楚，\
+        没有杂音或者模糊的发音，反之最差为1分。")
 
 def render(mos_setting: MOSSetting, save_path: str):
     mos_result = MOSResult()
     st.set_page_config(page_title="MOS 评测")
+    write_readme()
     with st.form("MOS"):
 
         username = st.text_input("您的名字", placeholder="输入您的名字,必须由英文字母构成")
@@ -77,14 +87,22 @@ def render(mos_setting: MOSSetting, save_path: str):
             with col_eval:
                 for filename, expname in eval_audio:
                     st.audio(filename)
-                    c = st.radio(
+                    timbre = st.radio(
                         "音色相似度",
                         [1, 2, 3, 4, 5],
                         horizontal=True,
                         index=None,
-                        key=filename
+                        key=f"{filename}-timbre"
                     )
-                    mos_result.add_item(filename, expname, c, username)
+                    clarity = st.radio(
+                        "发音清晰度",
+                        [1, 2, 3, 4, 5],
+                        horizontal=True,
+                        index=None,
+                        key=f"{filename}-clarity"
+                    )
+                    mos_result.add_item(filename, expname,
+                                        timbre, clarity, username)
 
         click = st.form_submit_button("提交结果")
 

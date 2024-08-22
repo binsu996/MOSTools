@@ -10,7 +10,8 @@ def read_url_table(filename):
     df = pd.read_excel(filename, index_col=0)
     return df
 
-def gen_one_page(df, metrics, save_to_dir, page_id=0, first_is_gt=False):
+
+def gen_one_page(df, metrics, save_to_dir, page_id=0, first_is_gt=False, shuffle=True):
     data = df.values
     ngroup = len(df.columns)
     n_metrics = len(metrics)
@@ -22,16 +23,19 @@ def gen_one_page(df, metrics, save_to_dir, page_id=0, first_is_gt=False):
         for i, audios in enumerate(data):
             cols = st.columns(ngroup)
             audio_with_names = list(zip(audios, df.columns))
-            if first_is_gt:
-                sub_part = audio_with_names[1:]
-                np.random.shuffle(sub_part)
-                audio_with_names = [audio_with_names[0], *sub_part]
-            else:
-                np.random.shuffle(audio_with_names)
+            if shuffle:
+                if first_is_gt:
+                    sub_part = audio_with_names[1:]
+                    np.random.shuffle(sub_part)
+                    audio_with_names = [audio_with_names[0], *sub_part]
+                else:
+                    np.random.shuffle(audio_with_names)
 
             for j, (col, audio_with_name) in enumerate(zip(cols, audio_with_names)):
                 audio, name = audio_with_name
                 with col:
+                    if not shuffle:
+                        st.write(name)
                     st.audio(
                         audio, format="audio/{}".format(audio.split(".")[-1]))
 
@@ -76,22 +80,23 @@ def login_page():
         st.write(username)
         return username
 
-def render(filename, metrics, first_is_gt, save_to_dir):
+
+def render(filename, metrics, first_is_gt, save_to_dir, shuffle):
     st.set_page_config(page_title="MOS 评测", layout="wide")
     df = read_url_table(filename)
     n = np.ceil(len(df)/10)
     dfs = np.array_split(df, n)
 
     options = st.sidebar.radio("测评任务子集", range(len(dfs)))
-    pages = [partial(gen_one_page, sub_df, metrics, save_to_dir, idx, first_is_gt)
+    pages = [partial(gen_one_page, sub_df, metrics, save_to_dir, idx, first_is_gt, shuffle)
              for idx, sub_df in enumerate(dfs)]
     pages[options]()
 
 
-def run_mos(filename, save_to_dir="tmp"):
+def run_mos(filename, save_to_dir="tmp", shuffle=True, first_is_gt=False):
     Path(save_to_dir).mkdir(exist_ok=True, parents=True)
-    render(filename, metrics=["Quality"],
-           first_is_gt=True, save_to_dir=save_to_dir)
+    render(filename, metrics=["PhonemeClarity", "ReverberationSeverity", "OtherNoiseLevel", "Overall"],
+           first_is_gt=first_is_gt, save_to_dir=save_to_dir, shuffle=shuffle)
 
 
 if __name__ == "__main__":

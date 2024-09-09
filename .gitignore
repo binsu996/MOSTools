@@ -1,3 +1,10 @@
 test_demo
 test_demo2
 mos_test
+*.wav
+*.mp3
+.ipynb_checkpoints
+*.xlsx
+*.zip
+*.ckpt
+pretrained_models
